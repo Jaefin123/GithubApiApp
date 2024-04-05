@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">GithubApiApp</string>
+    <string name="tab_satu">followers</string>
+    <string name="tab_dua">following</string>
+</resources>
