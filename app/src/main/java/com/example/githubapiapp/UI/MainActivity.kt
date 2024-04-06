@@ -6,11 +6,17 @@ import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.githubapiapp.Data.local.datastore.SettingPreference
+import com.example.githubapiapp.Data.local.datastore.ViewModelFactory
+import com.example.githubapiapp.Data.local.datastore.dataStore
 import com.example.githubapiapp.Data.retrofit.Apiconfig
 import com.example.githubapiapp.Data.response.User
 import com.example.githubapiapp.Data.response.DatagithubResponse
+import com.example.githubapiapp.R
 import com.example.githubapiapp.UI.DetailActivity.Companion.username
 import com.example.githubapiapp.databinding.ActivityMainBinding
 import retrofit2.Call
@@ -43,15 +49,51 @@ class MainActivity : AppCompatActivity(){
                 .setOnEditorActionListener { textView, actionId, event ->
                     searchBar.text
                     searchView.hide()
-                    findUser(searchView.text.toString())
+                    cariUser(searchView.text.toString())
                     false
                 }
         }
-
-        findUser(shuffle())
+        lihatSetting()
+        Appbar()
+        cariUser(shuffle())
     }
 
-    fun findUser(cari: String){
+    private fun lihatSetting() {
+        val pref = SettingPreference.getInstance(application.dataStore)
+        val settingViewModel = ViewModelProvider(this, ViewModelFactory(pref)).get(
+            SettingViewModel::class.java
+        )
+
+        settingViewModel.getThemeSet().observe(this){ isDarkModeActive: Boolean ->
+
+            if (isDarkModeActive) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+            } else {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+            }
+
+        }
+    }
+
+    private fun Appbar() {
+        binding.AppBar.setOnMenuItemClickListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.btn_favorite -> {
+                    val intent = Intent(this, FavoriteActivity::class.java)
+                    startActivity(intent)
+                    true
+                }
+                R.id.btn_setting -> {
+                    val sIntent = Intent(this, SettingActivity::class.java)
+                    startActivity(sIntent)
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    fun cariUser(cari: String){
         showLoading(true)
         val client = Apiconfig.getApiService().getUsers(cari)
         client.enqueue(object : Callback<DatagithubResponse> {

@@ -6,6 +6,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.viewpager2.widget.ViewPager2
 import com.example.githubapiapp.R
 import com.example.githubapiapp.Data.retrofit.Apiconfig
@@ -15,13 +16,22 @@ import retrofit2.Callback
 import retrofit2.Response
 import com.bumptech.glide.Glide
 import com.example.githubapiapp.Adapter.SectionAdapter
+import com.example.githubapiapp.Data.local.database.Favorite
+import com.example.githubapiapp.Data.local.database.FavoriteRoomDatabase
 import com.example.githubapiapp.Data.response.DataDetailResponse
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DetailActivity : AppCompatActivity() {
 
+    val db by lazy { FavoriteRoomDatabase.getDatabase(this) }
+
     lateinit var dataUsername:String
+    lateinit var avatar: String
     private lateinit var binding: ActivityDetailBinding
 
     companion object {
@@ -40,8 +50,15 @@ class DetailActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         datausername()
+        btnFav()
         ambilDataDetail()
         setViewPager()
+
+        binding.bntFav.setOnClickListener {
+            TambahDb(dataUsername,avatar)
+        }
+
+
     }
 
     fun ambilDataDetail(){
@@ -64,6 +81,7 @@ class DetailActivity : AppCompatActivity() {
                     )
 //                    Toast.makeText(this@DetailActivity, "${responseBody?.login}", Toast.LENGTH_SHORT).show()
                     setDetail(data)
+                    avatar = responseBody?.avatarUrl.toString()
                 }else{
                     Log.e("DetailActivity", "onFailure: ${response.message()}")
                     Toast.makeText(this@DetailActivity, "${response.body()?.name}", Toast.LENGTH_SHORT).show()
@@ -116,6 +134,39 @@ class DetailActivity : AppCompatActivity() {
             tab.text = resources.getString(TAB_TITLES[position])
         }.attach()
         sectionAdapter.appName = dataUsername
+    }
+
+    fun TambahDb(name:String,avatar:String){
+        CoroutineScope(Dispatchers.IO).launch {
+            val dataCek = db.favDao().getFavorite(dataUsername)
+            if (dataCek.size == 0){
+                db.favDao().insert(
+                    Favorite(0, name, avatar, true)
+                )
+            }else{
+                db.favDao().deleteFav(dataUsername)
+            }
+            withContext(Dispatchers.Main){
+                btnFav()
+            }
+        }
+    }
+    //
+    fun btnFav(){
+        CoroutineScope(Dispatchers.IO).launch {
+            val dataCek = db.favDao().getFavorite(dataUsername)
+//            val delete = db.favDao().delete()
+            withContext(Dispatchers.Main) {
+                if (dataCek.size != 0 ){
+                    val drawable = ContextCompat.getDrawable(this@DetailActivity, R.drawable.red_fav_icon)
+                    binding.bntFav.setImageDrawable(drawable)
+                }else{
+                    val drawable = ContextCompat.getDrawable(this@DetailActivity, R.drawable.white_fav_icon)
+                    binding.bntFav.setImageDrawable(drawable)
+                }
+            }
+        }
+
     }
 
 
